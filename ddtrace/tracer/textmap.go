@@ -235,7 +235,7 @@ func getPropagators(cfg *PropagatorConfig, ps string) []Propagator {
 // Inject defines the Propagator to propagate SpanContext data
 // out of the current process. The implementation propagates the
 // TraceID and the current active SpanID, as well as the Span baggage.
-func (p *chainedPropagator) Inject(spanCtx ddtrace.SpanContext, carrier interface{}) error {
+func (p *chainedPropagator) Inject(spanCtx ddtrace.SpanContextW3C, carrier interface{}) error {
 	for _, v := range p.injectors {
 		err := v.Inject(spanCtx, carrier)
 		if err != nil {
@@ -246,7 +246,7 @@ func (p *chainedPropagator) Inject(spanCtx ddtrace.SpanContext, carrier interfac
 }
 
 // Extract implements Propagator.
-func (p *chainedPropagator) Extract(carrier interface{}) (ddtrace.SpanContext, error) {
+func (p *chainedPropagator) Extract(carrier interface{}) (ddtrace.SpanContextW3C, error) {
 	for _, v := range p.extractors {
 		ctx, err := v.Extract(carrier)
 		if ctx != nil {
@@ -268,7 +268,7 @@ type propagator struct {
 	cfg *PropagatorConfig
 }
 
-func (p *propagator) Inject(spanCtx ddtrace.SpanContext, carrier interface{}) error {
+func (p *propagator) Inject(spanCtx ddtrace.SpanContextW3C, carrier interface{}) error {
 	switch c := carrier.(type) {
 	case TextMapWriter:
 		return p.injectTextMap(spanCtx, c)
@@ -277,7 +277,7 @@ func (p *propagator) Inject(spanCtx ddtrace.SpanContext, carrier interface{}) er
 	}
 }
 
-func (p *propagator) injectTextMap(spanCtx ddtrace.SpanContext, writer TextMapWriter) error {
+func (p *propagator) injectTextMap(spanCtx ddtrace.SpanContextW3C, writer TextMapWriter) error {
 	ctx, ok := spanCtx.(*spanContext)
 	if !ok || ctx.traceID == 0 || ctx.spanID == 0 {
 		return ErrInvalidSpanContext
@@ -334,7 +334,7 @@ func (p *propagator) marshalPropagatingTags(ctx *spanContext) string {
 	return sb.String()
 }
 
-func (p *propagator) Extract(carrier interface{}) (ddtrace.SpanContext, error) {
+func (p *propagator) Extract(carrier interface{}) (ddtrace.SpanContextW3C, error) {
 	switch c := carrier.(type) {
 	case TextMapReader:
 		return p.extractTextMap(c)
@@ -343,7 +343,7 @@ func (p *propagator) Extract(carrier interface{}) (ddtrace.SpanContext, error) {
 	}
 }
 
-func (p *propagator) extractTextMap(reader TextMapReader) (ddtrace.SpanContext, error) {
+func (p *propagator) extractTextMap(reader TextMapReader) (ddtrace.SpanContextW3C, error) {
 	var ctx spanContext
 	err := reader.ForeachKey(func(k, v string) error {
 		var err error
@@ -415,7 +415,7 @@ const (
 // using B3 headers. Only TextMap carriers are supported.
 type propagatorB3 struct{}
 
-func (p *propagatorB3) Inject(spanCtx ddtrace.SpanContext, carrier interface{}) error {
+func (p *propagatorB3) Inject(spanCtx ddtrace.SpanContextW3C, carrier interface{}) error {
 	switch c := carrier.(type) {
 	case TextMapWriter:
 		return p.injectTextMap(spanCtx, c)
@@ -424,7 +424,7 @@ func (p *propagatorB3) Inject(spanCtx ddtrace.SpanContext, carrier interface{}) 
 	}
 }
 
-func (*propagatorB3) injectTextMap(spanCtx ddtrace.SpanContext, writer TextMapWriter) error {
+func (*propagatorB3) injectTextMap(spanCtx ddtrace.SpanContextW3C, writer TextMapWriter) error {
 	ctx, ok := spanCtx.(*spanContext)
 	if !ok || ctx.traceID == 0 || ctx.spanID == 0 {
 		return ErrInvalidSpanContext
@@ -441,7 +441,7 @@ func (*propagatorB3) injectTextMap(spanCtx ddtrace.SpanContext, writer TextMapWr
 	return nil
 }
 
-func (p *propagatorB3) Extract(carrier interface{}) (ddtrace.SpanContext, error) {
+func (p *propagatorB3) Extract(carrier interface{}) (ddtrace.SpanContextW3C, error) {
 	switch c := carrier.(type) {
 	case TextMapReader:
 		return p.extractTextMap(c)
@@ -450,7 +450,7 @@ func (p *propagatorB3) Extract(carrier interface{}) (ddtrace.SpanContext, error)
 	}
 }
 
-func (*propagatorB3) extractTextMap(reader TextMapReader) (ddtrace.SpanContext, error) {
+func (*propagatorB3) extractTextMap(reader TextMapReader) (ddtrace.SpanContextW3C, error) {
 	var ctx spanContext
 	err := reader.ForeachKey(func(k, v string) error {
 		var err error
